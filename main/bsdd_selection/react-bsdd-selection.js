@@ -13726,7 +13726,7 @@ const Kl = {
   const t = up(e);
   return t && (!rn || rn.baseUrl !== t) && (rn = new Ja(t)), rn;
 }, Es = Uo("bsdd/fetchDictionaries", ({ bsddApiEnvironment: e, includeTestDictionaries: t }, n) => {
-  if (console.log("fetchDictionaries", e), !e)
+  if (!e)
     return n.rejectWithValue("No bsddApiEnvironment provided");
   const r = new Ja(e), o = bS;
   let i = 0;
