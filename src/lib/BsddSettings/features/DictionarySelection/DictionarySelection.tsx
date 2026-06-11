@@ -1,4 +1,4 @@
-import { Accordion, type ComboboxItem, MultiSelect, Space, Text, Title } from '@mantine/core';
+import { Accordion, type ComboboxItem, type ComboboxLikeRenderOptionInput, MultiSelect, Space, Text, Title } from '@mantine/core';
 import { useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -18,6 +18,20 @@ interface DictionarySelectionProps {
 
 const IFC_DICTIONARY_URL = 'https://identifier.buildingsmart.org/uri/buildingsmart/ifc/';
 const DEFAULT_IFC_PARAMETER = 'Export Type to IFC As';
+
+type DictionaryComboboxItem = ComboboxItem & {
+  organizationNameOwner: string;
+};
+
+function renderDictionaryOption({ option }: ComboboxLikeRenderOptionInput<ComboboxItem>) {
+  const item = option as DictionaryComboboxItem;
+  return (
+    <div>
+      <Text size="sm">{option.label}</Text>
+      <Text size="xs" c="dimmed">{item.organizationNameOwner}</Text>
+    </div>
+  );
+}
 
 function findDictionaryByUri(dictionaries: DictionaryContractV1[], uri: string | null) {
   return Object.values(dictionaries).find((item) => item.uri === uri);
@@ -64,12 +78,13 @@ function DictionarySelection({
   const { data: bsddDictionaries = {} } = useDictionaries(localSettings.includeTestDictionaries ?? false);
 
   const bsddDictionaryOptions = useMemo(() => {
-    const uniqueOptionsMap = new Map<string, ComboboxItem>();
+    const uniqueOptionsMap = new Map<string, DictionaryComboboxItem>();
     Object.values(bsddDictionaries).forEach((item) => {
       uniqueOptionsMap.set(item.uri, {
         value: item.uri,
         label: `${item.name} (${item.version})`,
-      } as ComboboxItem);
+        organizationNameOwner: item.organizationNameOwner,
+      });
     });
     return Array.from(uniqueOptionsMap.values());
   }, [bsddDictionaries]);
@@ -214,6 +229,7 @@ function DictionarySelection({
           onChange={changeMainDictionaryOption}
           placeholder="Select main dictionary"
           data={bsddDictionaryOptions}
+          renderOption={renderDictionaryOption}
           searchable
           clearable
         />
@@ -226,6 +242,7 @@ function DictionarySelection({
           onChange={changeIfcDictionaryOption}
           placeholder="Select filter dictionaries"
           data={bsddIfcDictionaryOptions}
+          renderOption={renderDictionaryOption}
           searchable
           clearable
         />
@@ -238,6 +255,7 @@ function DictionarySelection({
           onChange={changeFilterDictionaries}
           placeholder="Select filter dictionaries"
           data={bsddFilterDictionaryOptions}
+          renderOption={renderDictionaryOption}
           searchable
           clearable
         />

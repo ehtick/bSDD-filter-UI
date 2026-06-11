@@ -38,16 +38,20 @@ function Settings({ activeTab }: SettingsProps) {
     console.log('Saving', localSettings);
     if (!localSettings) return;
 
+    // Apply optimistically — validation fetches every configured dictionary through
+    // the rate-limited queue, and the other views must not wait seconds for that.
+    // The host receives the validated result so its persisted settings match the store.
+    setSettings(localSettings);
+    setUnsavedChanges(false);
+
     const validated = await validateSettings(queryClient, localSettings);
     setSettings(validated);
 
     if (typeof window?.bsddBridge?.saveSettings === 'function') {
-      window.bsddBridge.saveSettings(JSON.stringify(localSettings));
+      window.bsddBridge.saveSettings(JSON.stringify(validated));
     } else {
       console.error('window.bsddBridge.saveSettings is not a function');
     }
-
-    setUnsavedChanges(false);
   };
 
   const handleCancel = () => {
