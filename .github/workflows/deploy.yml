@@ -116,6 +116,18 @@ jobs:
             v[0-9]*
             latest
 
+      - name: Compute version aliases
+        if: startsWith(github.ref, 'refs/tags/')
+        id: semver
+        run: |
+          TAG="${{ github.ref_name }}"
+          # Only strict vX.Y.Z tags get a floating vX.Y alias. Anything else
+          # (prereleases, hotfix tags like v0.3.10.1) must not move or clobber
+          # other folders, so no alias is emitted and the alias steps skip.
+          if [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "patch_alias=${TAG%.*}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build for latest (release)
         if: startsWith(github.ref, 'refs/tags/')
         env:
@@ -130,6 +142,20 @@ jobs:
           mv dist dist-latest
           mv dist-versioned dist
 
+      - name: Build for patch alias (release)
+        if: startsWith(github.ref, 'refs/tags/') && steps.semver.outputs.patch_alias != ''
+        env:
+          BASE_PATH: '/bSDD-filter-UI/${{ steps.semver.outputs.patch_alias }}/'
+          VITE_APP_VERSION: ${{ github.ref_name }}
+          VITE_BSDD_CLIENT_ID: 'ba6a70eb-8e2d-4caa-ae3d-22fc1765c0a5'
+          VITE_BSDD_SCOPE: 'https://buildingSMARTservices.onmicrosoft.com/bsddapi/read'
+          VITE_BSDD_REDIRECT_URI: 'https://buildingsmart-community.github.io/bSDD-filter-UI/'
+        run: |
+          mv dist dist-versioned
+          yarn run build
+          mv dist dist-alias
+          mv dist-versioned dist
+
       - name: Deploy to GitHub Pages (versioned release)
         if: startsWith(github.ref, 'refs/tags/')
         uses: JamesIves/github-pages-deploy-action@v4.5.0
@@ -137,6 +163,15 @@ jobs:
           branch: gh-pages
           folder: dist
           target-folder: ${{ github.ref_name }}
+          clean: true
+
+      - name: Deploy to GitHub Pages (patch alias)
+        if: startsWith(github.ref, 'refs/tags/') && steps.semver.outputs.patch_alias != ''
+        uses: JamesIves/github-pages-deploy-action@v4.5.0
+        with:
+          branch: gh-pages
+          folder: dist-alias
+          target-folder: ${{ steps.semver.outputs.patch_alias }}
           clean: true
 
       - name: Deploy to GitHub Pages (latest)
